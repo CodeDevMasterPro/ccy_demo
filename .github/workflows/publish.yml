@@ -39,7 +39,11 @@ jobs:
         with:
           version: "latest"
 
-      # 第 4 步：构建并发布
+      # 第 4 步：验证uv安装
+      - name: Verify uv installation
+        run: uv --version
+
+      # 第 5 步：构建并发布
       - name: Build and Publish
         # 运行uv publish 命令。这个命令会自动：
         # 1. 根据 pyproject.toml 文件构建源代码发行版 (sdist) 和轮子文件 (wheel)。
