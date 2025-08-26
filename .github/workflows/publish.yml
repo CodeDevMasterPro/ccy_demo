@@ -42,9 +42,4 @@ jobs:
       # 步骤 5: 发布到 PyPI
       # 自动构建并上传包到 PyPI
       - name: Publish to PyPI
-        run: uv publish
-        env:
-          # 用户名固定为 __token__
-          UV_USERNAME: __token__
-          # 密码使用 GitHub Secrets 中的 PyPI API Token
-          UV_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: uv publish --token ${{ secrets.PYPI_API_TOKEN }}
