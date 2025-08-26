@@ -44,5 +44,7 @@ jobs:
       - name: Publish to PyPI
         run: uv publish
         env:
-          # 使用 GitHub Secrets 中的 PyPI API Token
-          UV_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+          # 用户名固定为 __token__
+          UV_USERNAME: __token__
+          # 密码使用 GitHub Secrets 中的 PyPI API Token
+          UV_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
