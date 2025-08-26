@@ -1,45 +1,93 @@
-# .github/workflows/publish.yml
+# --------------------------------------------------
+# 工作流的全局配置
+# --------------------------------------------------
 
-# 工作流名称：发布到 PyPI
-name: Publish to PyPI
+# name: 定义工作流的名称。这个名称会显示在你的 GitHub 仓库的 "Actions" 标签页中，方便识别和管理这个自动化流程。
+name: Publish Python Package to PyPI
 
-# 触发条件：推送以 v 开头的标签时触发
+# --------------------------------------------------
+# 触发器 (Triggers)
+# --------------------------------------------------
+
+# on: 定义触发这个工作流的事件。可以配置多种触发条件。
 on:
+  # push: 表示当代码被推送到仓库时触发。
   push:
+    # tags: 进一步限制，只有当推送的是一个 "标签 (tag)" 时才触发。
+    # 这是一种常见的发布策略，确保只有打了版本标签的提交才会被发布。
     tags:
-      - 'v*'  # 例如: v1.0, v2.1.0
+      # - 'v*': 这是一个模式匹配规则。'*' 是通配符。
+      # 意味着只有当标签以 'v' 开头时（例如 v1.0, v2.1.3），这个工作流才会被触发。
+      # 推送普通的代码提交或不匹配的标签（如 'release-1'）不会触发此流程。
+      - 'v*'
 
-# 任务定义
+# --------------------------------------------------
+# 任务 (Jobs)
+# --------------------------------------------------
+
+# jobs: 定义工作流中要执行的一个或多个任务。
+# 任务可以并行或按顺序运行。这里我们只有一个名为 "publish" 的任务。
 jobs:
-  # 发布任务
+  # publish: 这是我们为这个任务写的唯一标识符（ID）。你可以自定义，如 'deploy'。
   publish:
-    # 运行环境：最新版 Ubuntu
+    # name: 为任务定义一个更友好的显示名称，它会显示在 GitHub Actions 的 UI 界面中。
+    name: Build and publish to PyPI
+
+    # runs-on: 指定运行这个任务的虚拟机环境。
+    # GitHub 会提供临时的云服务器来执行任务。
+    # 'ubuntu-latest' 表示使用最新稳定版的 Ubuntu Linux 系统，这是 Python 项目最常用的环境。
     runs-on: ubuntu-latest
 
+    # --------------------------------------------------
+    # 步骤 (Steps)
+    # --------------------------------------------------
+
+    # steps: 定义了构成这个任务的一系列按顺序执行的步骤。
+    # 每个步骤可以是一个独立的命令，也可以是使用一个预定义的 "Action"。
     steps:
       # 步骤 1: 检出代码
-      # 将仓库代码下载到工作环境
-      - uses: actions/checkout@v4
+      # - name: (可选) 为步骤提供一个描述性名称，会显示在日志中。
+      - name: Check out repository
+        # uses: 指定使用一个社区或官方提供的可复用 Action。
+        # 'actions/checkout@v4' 是一个官方 Action，
+        # 它的功能是将你的仓库代码下载到虚拟机的工作目录中，以便后续步骤可以访问它。
+        uses: actions/checkout@v4
 
       # 步骤 2: 设置 Python 环境
-      # 安装指定版本的 Python
-      - uses: actions/setup-python@v5
+      - name: Set up Python
+        # 'actions/setup-python@v5' 是另一个官方 Action，
+        # 专门用于在虚拟机中安装并配置指定版本的 Python。
+        uses: actions/setup-python@v5
+        # with: 用于向 Action 传递参数。
         with:
+          # python-version: 指定要安装的 Python 版本。
+          # 建议使用你的项目所支持和测试过的具体版本。
           python-version: '3.11'
 
       # 步骤 3: 安装 uv 工具
-      # 现代化的 Python 包管理工具
-      - name: Install uv
+      # uv 是一个由 Astral 开发的高性能 Python 包管理工具，可以替代 pip、pip-tools、virtualenv 和 venv。
+      # 它以极快的速度著称，在这里我们用它来构建和发布包。
+      - name: Install uv publishing tool
+        # 'astral-sh/setup-uv@v2' 是 uv 官方提供的 Action，用于在环境中快速安装 uv。
         uses: astral-sh/setup-uv@v2
         with:
+          # version: 指定要安装的 uv 版本，'latest' 表示始终使用最新版。
           version: "latest"
 
       # 步骤 4: 构建包
-      # 生成源代码发行版和轮子文件
+      # 在发布之前，需要将项目源代码打包成标准的 Python 发行版格式（sdist 和 wheel）。
       - name: Build package
+        # run: 指定直接在虚拟机的命令行 (shell) 中执行一条命令。
+        # 'uv build' 会读取项目根目录下的 'pyproject.toml' 文件，
+        # 然后在 'dist/' 目录下生成 .whl (wheel) 和 .tar.gz (sdist) 文件。
         run: uv build
 
       # 步骤 5: 发布到 PyPI
-      # 自动构建并上传包到 PyPI
-      - name: Publish to PyPI
+      # 这是最后一步，将构建好的包上传到 Python 包索引 (PyPI)。
+      - name: Publish package to PyPI
+        # 'uv publish' 命令会自动查找 'dist/' 目录下的包文件并上传。
+        # '--token' 是一个命令行参数，用于提供认证凭据。
+        # '${{ secrets.PYPI_API_TOKEN }}' 是 GitHub Actions 的特殊语法，用于安全地引用密钥。
+        # 它会从你仓库的 "Settings -> Secrets and variables -> Actions" 中读取名为 'PYPI_API_TOKEN' 的值。
+        # 使用 Secrets 可以确保你的 API Token 不会暴露在代码或公开的日志中。
         run: uv publish --token ${{ secrets.PYPI_API_TOKEN }}
