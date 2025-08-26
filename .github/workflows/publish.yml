@@ -1,0 +1,51 @@
+# .github/workflows/publish.yml
+
+# 工作流的名称，会显示在 GitHub Actions 的界面上
+name: Publish to PyPI
+
+# on: 定义了触发这个工作流的事件
+on:
+  # push: 当有代码推送到仓库时
+  push:
+    # tags: 只有当推送的是一个 tag 时才触发
+    tags:
+      - 'v*' # 匹配所有以 'v' 开头的 tag，例如 v1.0, v0.2.1-alpha 等
+
+# jobs: 定义了工作流中要执行的一系列任务
+jobs:
+  # publish: 这是任务的唯一标识符（ID），可以自定义
+  publish:
+    # runs-on: 指定任务运行的虚拟环境，这里使用最新的 Ubuntu 系统
+    runs-on: ubuntu-latest
+
+    # steps: 定义了任务中要按顺序执行的一系列步骤
+    steps:
+      # 第 1 步：检出代码
+      # 使用官方的 actions/checkout@v4 action
+      # 作用：将你的仓库代码下载到虚拟环境中，以便后续步骤可以访问它
+      - uses: actions/checkout@v4
+
+      # 第 2 步：设置 Python 环境
+      # 使用官方的 actions/setup-python@v5 action
+      # 作用：安装指定版本的 Python，并将其添加到系统的 PATH 中
+      - uses: actions/setup-python@v5
+
+      # 第 3 步：安装 uv
+      # name: 步骤的名称，方便在日志中查看
+      - name: Install uv
+        # run: 在 shell 中执行的命令
+        # 使用官方推荐的 curl 脚本来安装 uv，这是一个现代化的、极快的 Python 包管理工具
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      # 第 4 步：构建并发布
+      - name: Build and Publish
+        # 运行uv publish 命令。这个命令会自动：
+        # 1. 根据 pyproject.toml 文件构建源代码发行版 (sdist) 和轮子文件 (wheel)。
+        # 2. 将构建好的文件上传到 PyPI。
+        run: uv publish
+        # 设置环境变量
+        env:
+          # UV_PYPI_TOKEN是uv用来验证PyPI身份的特定环境变量。
+          # ${{ secrets.PYPI_API_TOKEN }}是一个特殊的语法，用于安全地引用
+          # 在GitHub仓库"Settings -> Secrets" 中存储的名为PYPI_API_TOKEN的秘密。避免将敏感的API Token直接硬编码在代码中。
+          UV_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
